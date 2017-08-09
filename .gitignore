@@ -1,0 +1,13 @@
+#ignore all file
+/*
+
+# include project file
+!.gitignore
+!pom.xml
+
+# include text
+!README.md
+
+# include source code
+!src/
+
