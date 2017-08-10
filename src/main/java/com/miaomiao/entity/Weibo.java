@@ -1,5 +1,6 @@
 package com.miaomiao.entity;
 
+import com.miaomiao.dto.JPAEntity;
 import lombok.*;
 
 import javax.persistence.*;
@@ -15,8 +16,7 @@ import java.util.Date;
         indexes = {@Index(name = "id", columnList = "id", unique = true),
                 @Index(name = "uid", columnList = "uid")})
 @Data
-public class Weibo implements Serializable {
-
+public class Weibo extends JPAEntity<Weibo> implements Serializable  {
     //ID
     @Id
     private String id;
