@@ -16,32 +16,27 @@ import java.io.IOException;
  * Created by lyl on 2017-8-10.
  */
 public class HttpClientUtils {
-    private static Logger logger=LoggerFactory.getLogger(HttpClientUtils.class);
+    private static Logger logger = LoggerFactory.getLogger(HttpClientUtils.class);
     private static HttpClient HTTP_CLIENT;
 
-    private static HttpClient getHttpClient(){
-        if (HTTP_CLIENT==null){
-            HTTP_CLIENT= HttpClients.createDefault();
+    private static HttpClient getHttpClient() {
+        if (HTTP_CLIENT == null) {
+            HTTP_CLIENT = HttpClients.createDefault();
         }
         return HTTP_CLIENT;
     }
 
     public static HttpResponse get(String url) throws IOException {
-        HttpClient httpClient=getHttpClient();
-        HttpGet httpGet=new HttpGet(url);
+        HttpClient httpClient = getHttpClient();
+        HttpGet httpGet = new HttpGet(url);
         return httpClient.execute(httpGet);
     }
 
     public static JsonObject getResponseJson(String url) throws Exception {
-        HttpResponse httpResponse=get(url);
-        String responseBody= EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
-        JsonObject responseJson=null;
-        try {
-            responseJson=new JsonParser().parse(responseBody).getAsJsonObject();
-        }catch (Exception e){
-            logger.error(e.getMessage());
-            throw e;
-        }
+        HttpResponse httpResponse = get(url);
+        String responseBody = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
+        JsonObject responseJson = null;
+        responseJson = new JsonParser().parse(responseBody).getAsJsonObject();
         return responseJson;
     }
 }
