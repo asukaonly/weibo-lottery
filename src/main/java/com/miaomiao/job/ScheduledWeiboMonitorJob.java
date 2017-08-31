@@ -3,7 +3,6 @@ package com.miaomiao.job;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.miaomiao.dto.JPAEntity;
 import com.miaomiao.dto.WeiboRepository;
 import com.miaomiao.entity.Weibo;
 import com.miaomiao.utils.HttpClientUtils;
@@ -15,12 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * Created by lyl on 2017-8-8.
@@ -41,6 +37,8 @@ public class ScheduledWeiboMonitorJob {
     //30分钟执行1次
     @Scheduled(fixedDelay = 30 * 60 * 1000)
     public void weiboMonitorJob() {
+        //获取带抽奖关键字的微博
+        logger.info("weibo monitor job start");
         JsonObject responseJson = null;
         try {
             responseJson = HttpClientUtils.getResponseJson(WeiboService.LOTTERY_URL);
@@ -51,19 +49,32 @@ public class ScheduledWeiboMonitorJob {
 
         if (responseJson.get("ok").getAsInt() != 1) {
             logger.error("接口请求失败，请重试");
+            //todo 失败向邮箱发送日志
             return;
         }
 
-        JsonArray contents = responseJson.get("cards").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("card_group").getAsJsonArray();
+
+        JsonArray cards = responseJson.get("cards").getAsJsonArray();
+        //过滤热门微博
+        JsonArray contents= new JsonArray();
+        for (JsonElement element:cards){
+            JsonObject o=element.getAsJsonObject();
+            if (!o.has("title") || !o.get("title").getAsString().equals("热门微博")) {
+                contents.addAll(o.get("card_group").getAsJsonArray());
+            }
+        }
         List<Weibo> weiboList=new ArrayList<Weibo>();
         for (JsonElement content : contents) {
             JsonObject contentJson = content.getAsJsonObject().get("mblog").getAsJsonObject();
-            Weibo weibo = new Weibo();
-            weibo.setId(UUID.randomUUID().toString());
+            String mid=contentJson.get("mid").getAsString();
+
+            Weibo weibo = weiboRepository.findOne(mid);
+            if (weibo!=null)
+                continue;
+
+            weibo=new Weibo();
             weibo.setUid(contentJson.get("user").getAsJsonObject().get("id").getAsString());
-            weibo.setMid(contentJson.get("mid").getAsString());
+            weibo.setMid(mid);
             String text = contentJson.get("text").getAsString();
             weibo.setContent(text);
             weibo.setNeedForwarded(text.contains("转发"));
@@ -71,10 +82,14 @@ public class ScheduledWeiboMonitorJob {
             weibo.setFollowed(false);
             weibo.setForwarded(false);
             weibo.setReplayed(false);
-            weibo.setCompleted(false);
-            Pattern p = Pattern.compile("#[^#]*#");
+
             StringBuilder topicString = new StringBuilder();
-            String[] matches = p.split(text);
+            List<String> matches = new ArrayList<>();
+            Pattern p = Pattern.compile("#[^#]*#");
+            Matcher matcher = p.matcher(text);
+            while (matcher.find()){
+                matches.add(matcher.group());
+            }
             for (String match : matches) {
                 if (match.length() > 20) {
                     //过滤超长话题
@@ -87,9 +102,18 @@ public class ScheduledWeiboMonitorJob {
                     break;
                 }
             }
+
             weibo.setTopic(topicString.toString());
             weibo.setUpdateDate(new Date());
-            weiboList.add(weibo);
+
+            if (weibo.isNeedReplayed()||weibo.isNeedForwarded()){
+                weibo.setCompleted(false);
+                weiboList.add(weibo);
+            }else {
+                weibo.setCompleted(true);
+            }
+
+            weiboRepository.save(weibo);
         }
         weiboList.stream().parallel().forEach(weibo -> WeiboService.handleWeibo(weibo,username,password));
     }

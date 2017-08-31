@@ -1,6 +1,5 @@
 package com.miaomiao.entity;
 
-import com.miaomiao.dto.JPAEntity;
 import lombok.*;
 import lombok.extern.log4j.Log4j;
 
@@ -14,23 +13,19 @@ import java.util.Date;
 
 @Entity
 @Table(name = "weibo",
-        indexes = {@Index(name = "id", columnList = "id", unique = true),
-                @Index(name = "uid", columnList = "uid"),
-                @Index(name = "mid", columnList = "mid")})
+        indexes = {@Index(name = "mid", columnList = "mid", unique = true),
+                    @Index(name = "uid", columnList = "uid")})
 @Data
 @Log4j
 public class Weibo implements Serializable {
-    //ID
+    //微博id
     @Id
-    private String id;
+    @Column(nullable = false, length = 50)
+    private String mid;
 
     //用户id
     @Column(nullable = false, length = 50)
     private String uid;
-
-    //微博id
-    @Column(nullable = false, length = 50)
-    private String mid;
 
     //微博内容
     @Column(columnDefinition="TEXT")
