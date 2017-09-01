@@ -77,11 +77,11 @@ public class ScheduledWeiboMonitorJob {
             weibo.setMid(mid);
             String text = contentJson.get("text").getAsString();
             weibo.setContent(text);
-            weibo.setNeedForwarded(text.contains("转发"));
-            weibo.setNeedReplayed(text.contains("评论"));
+            weibo.setNeedForward(text.contains("转发"));
+            weibo.setNeedReply(text.contains("评论"));
             weibo.setFollowed(false);
             weibo.setForwarded(false);
-            weibo.setReplayed(false);
+            weibo.setReplyed(false);
 
             StringBuilder topicString = new StringBuilder();
             List<String> matches = new ArrayList<>();
@@ -106,14 +106,15 @@ public class ScheduledWeiboMonitorJob {
             weibo.setTopic(topicString.toString());
             weibo.setUpdateDate(new Date());
 
-            if (weibo.isNeedReplayed()||weibo.isNeedForwarded()){
+            if (weibo.isNeedForward()||weibo.isNeedReply()){
                 weibo.setCompleted(false);
                 weiboList.add(weibo);
             }else {
                 weibo.setCompleted(true);
+                weiboRepository.save(weibo);
             }
 
-            weiboRepository.save(weibo);
+            //weiboRepository.save(weibo);
         }
         weiboList.stream().parallel().forEach(weibo -> WeiboService.handleWeibo(weibo,username,password));
     }

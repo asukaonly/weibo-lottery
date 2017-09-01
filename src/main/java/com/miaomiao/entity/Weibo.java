@@ -35,14 +35,14 @@ public class Weibo implements Serializable {
     private boolean isFollowed;
 
     //是否需要转发
-    private boolean needForwarded;
+    private boolean needForward;
     //是否完成转发
     private boolean isForwarded;
 
     //是否需要评论
-    private boolean needReplayed;
+    private boolean needReply;
     //是否完成评论
-    private boolean isReplayed;
+    private boolean isReplyed;
 
     //是否完成任务
     private boolean isCompleted;

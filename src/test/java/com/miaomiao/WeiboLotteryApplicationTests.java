@@ -16,9 +16,6 @@ public class WeiboLotteryApplicationTests {
 	@Value("${weibo.password}")
 	private String password;
 
-	@Test
-	public void contextLoads() throws Exception {
-		WeiboService.login(username,password);
-	}
+
 
 }
