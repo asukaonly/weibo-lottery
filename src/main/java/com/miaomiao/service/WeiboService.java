@@ -51,7 +51,7 @@ public class WeiboService {
     }
 
     private static String login(String username, String password) {
-        logger.info("{} start login, time: {}", username, new Date());
+        logger.info("{} Start Login, Time: {}", username, new Date());
         HttpPost post = HttpClientUtils.getHttpPost(LOGIN_API_URL, LOGIN_REFERER);
         String query = String.format("username=%s&password=%s&", username, password) + LOGIN_QUERY;
 
@@ -79,12 +79,12 @@ public class WeiboService {
                 .toArray(String[]::new);
 
         COOKIES = String.join(" ", cookies);
-        logger.info("{} login success, cookies:{}, time: {}", username, cookies, new Date());
+        logger.info("{} Login Success, Cookies: {}, Time: {}", username, cookies, new Date());
         return COOKIES;
     }
 
     public static void handleWeibo(Weibo weibo, String username, String password) {
-        logger.info("Mid:{} start job,time:{}", weibo.getMid(), new Date());
+        logger.info("Mid:{} Start Job, Time: {}", weibo.getMid(), new Date());
         String cookies = getLoginCookies(username, password);
         if (cookies == null) {
             return;
@@ -92,18 +92,18 @@ public class WeiboService {
 
         boolean successFollowed = follow(weibo, cookies);
         weibo.setFollowed(successFollowed);
-        logger.info("Mid:{} End Follow Job, State: {}, time:{}", weibo.getMid(), successFollowed ? "success" : "failed", new Date());
+        logger.info("Mid:{} End Follow Job, Status: {}, time:{}", weibo.getMid(), successFollowed ? "success" : "failed", new Date());
 
         if (weibo.isNeedReply()) {
             boolean successReplyed = reply(weibo, cookies);
             weibo.setReplyed(successReplyed);
-            logger.info("Mid:{} End Reply Job, State{}, Time:{}", weibo.getMid(), successReplyed ? "success" : "failed", new Date());
+            logger.info("Mid:{} End Reply Job, Status: {}, Time:{}", weibo.getMid(), successReplyed ? "success" : "failed", new Date());
         }
 
         if (weibo.isNeedForward()) {
             boolean successForwarded = forward(weibo, cookies);
             weibo.setForwarded(successForwarded);
-            logger.info("Mid:{} End Forward Job, State: {}, time:{}", weibo.getMid(), successForwarded ? "success" : "failed", new Date());
+            logger.info("Mid:{} End Forward Job, Status: {}, time:{}", weibo.getMid(), successForwarded ? "success" : "failed", new Date());
         }
 
         if (weibo.isNeedForward() == weibo.isForwarded()
