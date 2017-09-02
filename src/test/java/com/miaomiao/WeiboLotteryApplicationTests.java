@@ -17,5 +17,4 @@ public class WeiboLotteryApplicationTests {
 	private String password;
 
 
-
 }

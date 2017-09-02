@@ -18,17 +18,13 @@ import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Date;
 
-
-/**
- * Created by lyl on 2017-8-8.
- */
 @Component
 public class WeiboService {
     private static final Logger logger = LoggerFactory.getLogger(WeiboService.class);
 
     //相关接口url
-    public static final String LOGIN_API_URL = "https://passport.weibo.cn/sso/login";
     public static final String LOTTERY_URL = "https://m.weibo.cn/api/container/getIndex?type=all&queryVal=%E6%8A%BD%E5%A5%96&featurecode=20000320&luicode=10000011&lfid=106003type%3D1&title=%E6%8A%BD%E5%A5%96&containerid=100103type%3D1%26q%3D%E6%8A%BD%E5%A5%96&page=2";
+    public static final String LOGIN_API_URL = "https://passport.weibo.cn/sso/login";
     public static final String FOLLOW_URL = "http://s.weibo.com/ajax/user/follow?__rnd=1504271463393";
     public static final String FORWARD_URL = "http://s.weibo.com/ajax/mblog/forward?__rnd=1485084296329";
     public static final String REPLY_URL = "http://s.weibo.com/ajax/comment/add?__rnd=1484832107695";
@@ -54,7 +50,7 @@ public class WeiboService {
         WeiboService.weiboRepository = weiboRepository;
     }
 
-    public static String login(String username, String password) {
+    private static String login(String username, String password) {
         logger.info("{} start login, time: {}", username, new Date());
         HttpPost post = HttpClientUtils.getHttpPost(LOGIN_API_URL, LOGIN_REFERER);
         String query = String.format("username=%s&password=%s&", username, password) + LOGIN_QUERY;
@@ -96,18 +92,18 @@ public class WeiboService {
 
         boolean successFollowed = follow(weibo, cookies);
         weibo.setFollowed(successFollowed);
-        logger.info("Mid:{} end follow job, state {}, time:{}", weibo.getMid(), successFollowed ? "success" : "failed", new Date());
-
-        if (weibo.isNeedForward()) {
-            boolean successForwarded = forward(weibo, cookies);
-            weibo.setForwarded(successForwarded);
-            logger.info("Mid:{} end forward job, state{}, time:{}", weibo.getMid(), successForwarded ? "success" : "failed", new Date());
-        }
+        logger.info("Mid:{} End Follow Job, State: {}, time:{}", weibo.getMid(), successFollowed ? "success" : "failed", new Date());
 
         if (weibo.isNeedReply()) {
             boolean successReplyed = reply(weibo, cookies);
             weibo.setReplyed(successReplyed);
-            logger.info("Mid:{} end reply job, state{}, time:{}", weibo.getMid(), successReplyed ? "success" : "failed", new Date());
+            logger.info("Mid:{} End Reply Job, State{}, Time:{}", weibo.getMid(), successReplyed ? "success" : "failed", new Date());
+        }
+
+        if (weibo.isNeedForward()) {
+            boolean successForwarded = forward(weibo, cookies);
+            weibo.setForwarded(successForwarded);
+            logger.info("Mid:{} End Forward Job, State: {}, time:{}", weibo.getMid(), successForwarded ? "success" : "failed", new Date());
         }
 
         if (weibo.isNeedForward() == weibo.isForwarded()
@@ -115,7 +111,7 @@ public class WeiboService {
             weibo.setCompleted(true);
         }
         weiboRepository.save(weibo);
-        logger.info("Mid:{} end job,time:{}", weibo.getMid(), new Date());
+        logger.info("Mid:{} End Job, Time:{}", weibo.getMid(), new Date());
     }
 
     private static synchronized String getLoginCookies(String username, String password) {
@@ -142,7 +138,7 @@ public class WeiboService {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return false;
     }
@@ -160,7 +156,7 @@ public class WeiboService {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return false;
     }
@@ -178,7 +174,7 @@ public class WeiboService {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return false;
     }

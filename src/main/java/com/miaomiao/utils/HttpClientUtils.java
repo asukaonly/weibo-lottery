@@ -16,17 +16,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
-
-/**
- * Created by lyl on 2017-8-10.
- */
 public class HttpClientUtils {
     private static Logger logger = LoggerFactory.getLogger(HttpClientUtils.class);
     private static CloseableHttpClient HTTP_CLIENT;
 
-    public synchronized static CloseableHttpClient getHttpClient() {
+    private synchronized static CloseableHttpClient getHttpClient() {
         if (HTTP_CLIENT == null) {
             HTTP_CLIENT = HttpClients.createDefault();
         }
@@ -36,10 +31,11 @@ public class HttpClientUtils {
     public static void closeHttpClient() throws IOException {
         if (HTTP_CLIENT != null) {
             HTTP_CLIENT.close();
+            HTTP_CLIENT = null;
         }
     }
 
-    public static HttpResponse get(String url) throws Exception {
+    private static HttpResponse get(String url) throws Exception {
         HttpClient httpClient = getHttpClient();
         HttpGet httpGet = new HttpGet(url);
         return httpClient.execute(httpGet);
@@ -53,7 +49,7 @@ public class HttpClientUtils {
         return responseJson;
     }
 
-    public static HttpPost getHttpPost(String url) {
+    private static HttpPost getHttpPost(String url) {
         HttpPost post = new HttpPost(url);
         post.setHeader(HttpHeaders.CONTENT_TYPE, WeiboService.CONTENT_TYPE);
         post.setHeader(HttpHeaders.USER_AGENT, WeiboService.USER_AGENT);
@@ -73,7 +69,7 @@ public class HttpClientUtils {
         return post;
     }
 
-    public static HttpGet getHttpGet(String url) {
+    private static HttpGet getHttpGet(String url) {
         HttpGet get = new HttpGet(url);
         get.setHeader(HttpHeaders.CONTENT_TYPE, WeiboService.CONTENT_TYPE);
         get.setHeader(HttpHeaders.USER_AGENT, WeiboService.USER_AGENT);
@@ -94,8 +90,7 @@ public class HttpClientUtils {
     }
 
     public static HttpResponse getPostResponse(HttpPost httpPost) throws Exception {
-        HttpResponse httpResponse = getHttpClient().execute(httpPost);
-        return httpResponse;
+        return getHttpClient().execute(httpPost);
     }
 
     public static HttpResponse getPostResponse(HttpPost httpPost, String query) throws Exception {

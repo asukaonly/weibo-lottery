@@ -7,10 +7,6 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
 
-/**
- * Created by lyl on 2017-8-8.
- */
-
 @Entity
 @Table(name = "weibo",
         indexes = {@Index(name = "mid", columnList = "mid", unique = true),
