@@ -1,4 +1,4 @@
-#weibo-lottery
+# Weibo-lottery
 
     根据微博抽奖关键字自动转发评论
     
