@@ -1,24 +1,13 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
+#ignore all file
+/*
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
+# include project file
+!.gitignore
+!pom.xml
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+# include text
+!README.md
 
-### NetBeans ###
-nbproject/private/
-build/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
+# include source code
+!src/
+
