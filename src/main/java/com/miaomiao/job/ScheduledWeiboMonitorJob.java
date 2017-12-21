@@ -5,8 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.miaomiao.dto.WeiboRepository;
 import com.miaomiao.entity.Weibo;
-import com.miaomiao.utils.HttpClientUtils;
 import com.miaomiao.service.WeiboService;
+import com.miaomiao.utils.HttpClientUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,13 +52,15 @@ public class ScheduledWeiboMonitorJob {
             return;
         }
 
-        JsonArray cards = responseJson.get("cards").getAsJsonArray();
+        JsonArray cards = responseJson.get("data").getAsJsonObject().get("cards").getAsJsonArray();
         //过滤热门微博
         JsonArray contents = new JsonArray();
         for (JsonElement element : cards) {
             JsonObject o = element.getAsJsonObject();
             if (!o.has("title") || !o.get("title").getAsString().equals("热门微博")) {
-                contents.addAll(o.get("card_group").getAsJsonArray());
+                if (o.has("card_group")) {
+                    contents.addAll(o.get("card_group").getAsJsonArray());
+                }
             }
         }
         List<Weibo> weiboList = new ArrayList<>();
@@ -72,6 +76,8 @@ public class ScheduledWeiboMonitorJob {
             weibo.setUid(contentJson.get("user").getAsJsonObject().get("id").getAsString());
             weibo.setMid(mid);
             String text = contentJson.get("text").getAsString();
+            //过滤emoji
+            text = text.replaceAll(WeiboService.emojiRegex, "");
             weibo.setContent(text);
             weibo.setNeedForward(text.contains("转发"));
             weibo.setNeedReply(text.contains("评论"));

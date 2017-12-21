@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EntityScan(basePackageClasses = Weibo.class)
 public class WeiboLotteryApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(WeiboLotteryApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(WeiboLotteryApplication.class, args);
+    }
 }

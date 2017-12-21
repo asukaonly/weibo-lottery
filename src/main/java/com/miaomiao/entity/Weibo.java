@@ -1,6 +1,6 @@
 package com.miaomiao.entity;
 
-import lombok.*;
+import lombok.Data;
 import lombok.extern.log4j.Log4j;
 
 import javax.persistence.*;
@@ -10,7 +10,7 @@ import java.util.Date;
 @Entity
 @Table(name = "weibo",
         indexes = {@Index(name = "mid", columnList = "mid", unique = true),
-                    @Index(name = "uid", columnList = "uid")})
+                @Index(name = "uid", columnList = "uid")})
 @Data
 @Log4j
 public class Weibo implements Serializable {
@@ -24,7 +24,7 @@ public class Weibo implements Serializable {
     private String uid;
 
     //微博内容
-    @Column(columnDefinition="TEXT")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     //是否完成关注
