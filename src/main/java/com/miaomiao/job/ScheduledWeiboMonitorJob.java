@@ -3,6 +3,7 @@ package com.miaomiao.job;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.miaomiao.dto.WeiboRepository;
 import com.miaomiao.entity.Weibo;
 import com.miaomiao.service.WeiboService;
@@ -19,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Component
 public class ScheduledWeiboMonitorJob {
@@ -34,16 +34,22 @@ public class ScheduledWeiboMonitorJob {
     @Autowired
     private WeiboRepository weiboRepository;
 
+
     //2分钟执行1次
     @Scheduled(fixedDelay = 2 * 60 * 1000)
     public void weiboMonitorJob() {
         //获取带抽奖关键字的微博
         logger.info("Weibo Monitor Job Start, Time:{}", new Date());
+        String rsp = HttpClientUtils.get(WeiboService.LOTTERY_URL);
+        if (rsp == null) {
+            logger.info("接口请求失败，无法获取信息, 时间:{}", new Date());
+            return;
+        }
         JsonObject responseJson;
         try {
-            responseJson = HttpClientUtils.getResponseJson(WeiboService.LOTTERY_URL);
-        } catch (Exception e) {
-            logger.error(e.getMessage());
+            responseJson = new JsonParser().parse(rsp).getAsJsonObject();
+        } catch (IllegalStateException e) {
+            logger.error("json转换失败, json string: {}, date: {}", rsp, new Date());
             return;
         }
 
@@ -77,7 +83,7 @@ public class ScheduledWeiboMonitorJob {
             weibo.setMid(mid);
             String text = contentJson.get("text").getAsString();
             //过滤emoji
-            text = text.replaceAll(WeiboService.emojiRegex, "");
+            text = text.replaceAll(WeiboService.EMOJI_REGEX, "");
             weibo.setContent(text);
             weibo.setNeedForward(text.contains("转发"));
             weibo.setNeedReply(text.contains("评论"));
@@ -87,8 +93,7 @@ public class ScheduledWeiboMonitorJob {
 
             StringBuilder topicString = new StringBuilder();
             List<String> matches = new ArrayList<>();
-            Pattern p = Pattern.compile("#[^#]*#");
-            Matcher matcher = p.matcher(text);
+            Matcher matcher = WeiboService.TOPIC_REGEX.matcher(text);
             while (matcher.find()) {
                 matches.add(matcher.group());
             }

@@ -18,7 +18,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +30,9 @@ import java.io.InterruptedIOException;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * @author miaomiao
+ */
 public class HttpClientUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientUtils.class);
 
@@ -55,41 +57,35 @@ public class HttpClientUtils {
         LOGGER.info("Init Client Pool Success");
     }
 
-    private static HttpRequestRetryHandler httpRequestRetryHandler = new HttpRequestRetryHandler() {
-        @Override
-        public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
-            // 如果已经重试了5次，就放弃
-            if (executionCount >= HttpClientConfig.MAX_RETRY_COUNT) {
-                return false;
-            }
-            // 如果服务器丢掉了连接，那么就重试
-            if (exception instanceof NoHttpResponseException) {
-                return true;
-            }
-            // 不要重试SSL握手异常
-            if (exception instanceof SSLHandshakeException) {
-                return false;
-            }
-            // 超时
-            if (exception instanceof InterruptedIOException) {
-                return false;
-            }
-            // 目标服务器不可达
-            if (exception instanceof UnknownHostException) {
-                return false;
-            }
-            // ssl握手异常
-            if (exception instanceof SSLException) {
-                return false;
-            }
-            HttpClientContext clientContext = HttpClientContext.adapt(context);
-            HttpRequest request = clientContext.getRequest();
-            // 如果请求是幂等的，就再次尝试
-            if (!(request instanceof HttpEntityEnclosingRequest)) {
-                return true;
-            }
+    private static HttpRequestRetryHandler httpRequestRetryHandler = (exception, executionCount, context) -> {
+        // 如果已经重试了5次，就放弃
+        if (executionCount >= HttpClientConfig.MAX_RETRY_COUNT) {
             return false;
         }
+        // 如果服务器丢掉了连接，那么就重试
+        if (exception instanceof NoHttpResponseException) {
+            return true;
+        }
+        // 不要重试SSL握手异常
+        if (exception instanceof SSLHandshakeException) {
+            return false;
+        }
+        // 超时
+        if (exception instanceof InterruptedIOException) {
+            return false;
+        }
+        // 目标服务器不可达
+        if (exception instanceof UnknownHostException) {
+            return false;
+        }
+        // ssl握手异常
+        if (exception instanceof SSLException) {
+            return false;
+        }
+        HttpClientContext clientContext = HttpClientContext.adapt(context);
+        HttpRequest request = clientContext.getRequest();
+        // 如果请求是幂等的，就再次尝试
+        return !(request instanceof HttpEntityEnclosingRequest);
     };
 
     private synchronized static CloseableHttpClient getHttpClient() {
@@ -112,124 +108,6 @@ public class HttpClientUtils {
         }
     }
 
-    //region getHttpPost
-    private static HttpPost getHttpPost(String url) {
-        return new HttpPost(url);
-    }
-
-    public static HttpPost getHttpPost(String url, String ua) {
-        HttpPost post = getHttpPost(url);
-        if (ua != null) {
-            post.setHeader(HttpHeaders.USER_AGENT, ua);
-        } else {
-            post.setHeader(HttpHeaders.USER_AGENT, HttpClientConfig.CHROME_UA);
-        }
-        return post;
-    }
-
-    public static HttpPost getHttpPost(String url, String ua, String referer) {
-        HttpPost post = getHttpPost(url, ua);
-        if (referer != null) {
-            post.setHeader(HttpHeaders.REFERER, referer);
-        }
-        return post;
-    }
-
-    public static HttpPost getHttpPost(String url, String ua, String referer, String cookies) {
-        HttpPost post = getHttpPost(url, ua, referer);
-        if (cookies != null) {
-            post.setHeader("Cookie", cookies);
-        }
-        return post;
-    }
-
-    public static HttpPost getHttpPost(String url, Header... httpHeaders) {
-        HttpPost post = getHttpPost(url);
-        for (Header header : httpHeaders) {
-            post.setHeader(header);
-        }
-        return post;
-    }
-    //endregion
-
-    //region getHttpGet
-    private static HttpGet getHttpGet(String url) {
-        return new HttpGet(url);
-    }
-
-    public static HttpGet getHttpGet(String url, String ua) {
-        HttpGet get = getHttpGet(url);
-        if (ua != null) {
-            get.setHeader(HttpHeaders.USER_AGENT, ua);
-        } else {
-            get.setHeader(HttpHeaders.USER_AGENT, HttpClientConfig.CHROME_UA);
-        }
-        return get;
-    }
-
-    public static HttpGet getHttpGet(String url, String ua, String referer) {
-        HttpGet get = getHttpGet(url, ua);
-        if (referer != null) {
-            get.setHeader(HttpHeaders.REFERER, referer);
-        }
-        return get;
-    }
-
-    public static HttpGet getHttpGet(String url, String ua, String referer, String cookies) {
-        HttpGet get = getHttpGet(url, ua, referer);
-        if (cookies != null) {
-            get.setHeader("Cookie", cookies);
-        }
-        return get;
-    }
-
-    public static HttpGet getHttpGet(String url, Header... httpHeaders) {
-        HttpGet get = getHttpGet(url);
-        for (Header header : httpHeaders) {
-            get.setHeader(header);
-        }
-        return get;
-    }
-    //endregion
-
-    public static CloseableHttpResponse getResponse(HttpGet httpGet) throws Exception {
-        CloseableHttpClient httpClient = getHttpClient();
-        return httpClient.execute(httpGet, HttpClientContext.create());
-    }
-
-    public static CloseableHttpResponse postResponse(HttpPost httpPost) throws Exception {
-        return getHttpClient().execute(httpPost);
-    }
-
-    public static CloseableHttpResponse postResponse(HttpPost httpPost, String query) throws Exception {
-        StringEntity reqEntity = new StringEntity(query);
-        httpPost.setEntity(reqEntity);
-        return postResponse(httpPost);
-    }
-
-    public static HttpEntity getResponseEntity(String url) throws Exception {
-        HttpGet httpGet = getHttpGet(url);
-        return getResponseEntity(getResponse(httpGet));
-    }
-
-    public static HttpEntity getResponseEntity(CloseableHttpResponse httpResponse) throws Exception {
-        if (HttpStatus.SC_OK == httpResponse.getStatusLine().getStatusCode()) {
-            return httpResponse.getEntity();
-        }
-        return null;
-    }
-
-    public static String getResponseBody(CloseableHttpResponse httpResponse) throws Exception {
-        HttpEntity entity = getResponseEntity(httpResponse);
-        if (entity != null) {
-            String responseBody = EntityUtils.toString(entity, "UTF-8");
-            EntityUtils.consume(entity);
-            httpResponse.close();
-            return responseBody;
-        }
-        return null;
-    }
-
     public static String get(String url) {
         return get(url, null);
     }
@@ -244,6 +122,10 @@ public class HttpClientUtils {
 
     public static String get(String url, String referer, String ua, String cookies) {
         HttpGet httpGet = getHttpGet(url, referer, ua, cookies);
+        return get(httpGet);
+    }
+
+    public static String get(HttpGet httpGet) {
         try {
             CloseableHttpResponse response = getResponse(httpGet);
             return getResponseBody(response);
@@ -267,11 +149,142 @@ public class HttpClientUtils {
 
     public static String post(String url, String referer, String ua, String cookies) {
         HttpPost httpPost = getHttpPost(url, referer, ua, cookies);
+        return post(httpPost);
+    }
+
+    public static String post(HttpPost httpPost) {
         try {
             CloseableHttpResponse response = postResponse(httpPost);
             return getResponseBody(response);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String post(HttpPost httpPost, String query) {
+        try {
+            StringEntity reqEntity = new StringEntity(query);
+            httpPost.setEntity(reqEntity);
+            httpPost.addHeader(HttpHeaders.CONTENT_TYPE, HttpClientConfig.CONTENT_TYPE);
+            CloseableHttpResponse response = postResponse(httpPost);
+            return getResponseBody(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    //region getHttpGet
+    private static HttpGet getHttpGet(String url) {
+        return new HttpGet(url);
+    }
+
+    public static HttpGet getHttpGet(String url, String ua) {
+        HttpGet get = getHttpGet(url);
+        if (ua != null) {
+            get.setHeader(HttpHeaders.USER_AGENT, ua);
+        } else {
+            get.setHeader(HttpHeaders.USER_AGENT, HttpClientConfig.CHROME_UA);
+        }
+        return get;
+    }
+
+    public static HttpGet getHttpGet(String url, String referer, String ua) {
+        HttpGet get = getHttpGet(url, ua);
+        if (referer != null) {
+            get.setHeader(HttpHeaders.REFERER, referer);
+        }
+        return get;
+    }
+
+    public static HttpGet getHttpGet(String url, String referer, String ua, String cookies) {
+        HttpGet get = getHttpGet(url, referer, ua);
+        if (cookies != null) {
+            get.setHeader("Cookie", cookies);
+        }
+        return get;
+    }
+
+    public static HttpGet getHttpGet(String url, Header... httpHeaders) {
+        HttpGet get = getHttpGet(url);
+        for (Header header : httpHeaders) {
+            get.setHeader(header);
+        }
+        return get;
+    }
+    //endregion
+
+    //region getHttpPost
+    private static HttpPost getHttpPost(String url) {
+        return new HttpPost(url);
+    }
+
+    public static HttpPost getHttpPost(String url, String ua) {
+        HttpPost post = getHttpPost(url);
+        if (ua != null) {
+            post.setHeader(HttpHeaders.USER_AGENT, ua);
+        } else {
+            post.setHeader(HttpHeaders.USER_AGENT, HttpClientConfig.CHROME_UA);
+        }
+        return post;
+    }
+
+    public static HttpPost getHttpPost(String url, String referer, String ua) {
+        HttpPost post = getHttpPost(url, ua);
+        if (referer != null) {
+            post.setHeader(HttpHeaders.REFERER, referer);
+        }
+        return post;
+    }
+
+    public static HttpPost getHttpPost(String url, String referer, String ua, String cookies) {
+        HttpPost post = getHttpPost(url, referer, ua);
+        if (cookies != null) {
+            post.setHeader("Cookie", cookies);
+        }
+        return post;
+    }
+
+    public static HttpPost getHttpPost(String url, Header... httpHeaders) {
+        HttpPost post = getHttpPost(url);
+        for (Header header : httpHeaders) {
+            post.setHeader(header);
+        }
+        return post;
+    }
+    //endregion
+
+    public static CloseableHttpResponse getResponse(HttpGet httpGet) throws Exception {
+        CloseableHttpClient httpClient = getHttpClient();
+        return httpClient.execute(httpGet, HttpClientContext.create());
+    }
+
+    public static CloseableHttpResponse postResponse(HttpPost httpPost) throws Exception {
+        return getHttpClient().execute(httpPost);
+    }
+
+    public static CloseableHttpResponse postResponse(HttpPost httpPost, String query) throws Exception {
+        StringEntity reqEntity = new StringEntity(query);
+        httpPost.setEntity(reqEntity);
+        return postResponse(httpPost);
+    }
+
+    public static HttpEntity getResponseEntity(CloseableHttpResponse httpResponse) throws Exception {
+        //if (HttpStatus.SC_OK == httpResponse.getStatusLine().getStatusCode()) {
+        //    return httpResponse.getEntity();
+        //}
+        //return null;
+        return httpResponse.getEntity();
+    }
+
+    public static String getResponseBody(CloseableHttpResponse httpResponse) throws Exception {
+        HttpEntity entity = getResponseEntity(httpResponse);
+        if (entity != null) {
+            String responseBody = EntityUtils.toString(entity, "UTF-8");
+            EntityUtils.consume(entity);
+            httpResponse.close();
+            return responseBody;
         }
         return null;
     }
