@@ -12,7 +12,6 @@ import java.util.Date;
         indexes = {@Index(name = "mid", columnList = "mid", unique = true),
                 @Index(name = "uid", columnList = "uid")})
 @Data
-@Log4j
 public class Weibo implements Serializable {
     //微博id
     @Id
